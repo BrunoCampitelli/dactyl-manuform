@@ -9,6 +9,10 @@
 (defn deg2rad [degrees]
   (* (/ degrees 180) pi))
 
+;bru trs import
+(def trs-model (import "E:/manuform/dactyl-manuform-master/src/dactyl_keyboard/TRRSBreakout.stl"))
+(def pro-micro-model (import "E:/manuform/dactyl-manuform-master/src/dactyl_keyboard/proMicro.stl"))
+
 ;;;;;;;;;;;;;;;;;;;;;;
 ;; Shape parameters ;;
 ;;;;;;;;;;;;;;;;;;;;;;
@@ -16,29 +20,40 @@
 (def nrows 4)
 (def ncols 5)
 
-(def α (/ π 12))                        ; curvature of the columns
+;(def α (/ π 12))                        ; curvature of the columns
+(def α (/ π 8))                        ; curvature of the columns
+;(def α (/ π 6))                        ; curvature of the columns
 (def β (/ π 36))                        ; curvature of the rows
-(def centerrow (- nrows 3))             ; controls front-back tilt
-(def centercol 4)                       ; controls left-right tilt / tenting (higher number is more tenting)
-(def tenting-angle (/ π 4))            ; or, change this for more precise tenting control
+;default (def centerrow (- nrows 3))             ; controls front-back tilt
+(def centerrow (- nrows 2))             ; controls front-back tilt
+;(def centerrow (- nrows 1.5))             ; controls front-back tilt
+;(def centercol 3)                       ; controls left-right tilt / tenting (higher number is more tenting)
+;(def tenting-angle (/ π 10))            ; or, change this for more precise tenting control
+(def centercol 3)                       ; controls left-right tilt / tenting (higher number is more tenting)
+(def tenting-angle (/ π 10))            ; or, change this for more precise tenting control
 (def column-style
-  (if (> nrows 5) :orthographic :standard))  ; options include :standard, :orthographic, and :fixed
+  (if (> nrows 4) :standard :orthographic))  ; options include :standard, :orthographic, and :fixed
 ; (def column-style :fixed)
 
 (defn column-offset [column] (cond
-  (= column 2) [0 2.82 -4.5]
-  (>= column 4) [0 -12 5.64]            ; original [0 -5.8 5.64]
+  (= column 2) [0 8 -1] ; org [0 2.82 -4.5]
+  (= column 3) [0 4 -1] ; org [0 0 0]
+  (>= column 4) [0 -1 0]            ; original [0 -5.8 5.64] [0 -12 5.64]
   :else [0 0 0]))
 
-(def thumb-offsets [6 -3 -6])
+;bru- changed y offset to keep hole from forming near the thumbs. Needs to be <-8 with the current settings
+;(def thumb-offsets [0 -8 0]) ;org [0 -8 6]
+(def thumb-offsets [5 -16 -20]) ;org [0 -8 6]
 
-(def keyboard-z-offset 7)               ; controls overall height; original=9 with centercol=3; use 16 for centercol=2
+(def keyboard-z-offset 20)               ; controls overall height; original=9 with centercol=3; use 16 for centercol=2 org 26
 
-(def extra-width 2.5)                   ; extra space between the base of keys; original= 2
-(def extra-height 1.0)                  ; original= 0.5
+(def extra-width 0.5)                   ; extra space between the base of keys; original= 2
+;(def extra-width 1.5)                   ; extra space between the base of keys; original= 2
+(def extra-height -2.0)                  ; original= 0.5
+;(def extra-height 0)                  ; original= 0.5
 
-(def wall-z-offset -15)                 ; length of the first downward-sloping part of the wall (negative)
-(def wall-xy-offset 8)                  ; offset in the x and/or y direction for the first downward-sloping part of the wall (negative)
+(def wall-z-offset -5)                 ; length of the first downward-sloping part of the wall (negative) org 15
+(def wall-xy-offset 5)                  ; offset in the x and/or y direction for the first downward-sloping part of the wall (negative) org 8
 (def wall-thickness 2)                  ; wall thickness parameter; originally 5
 
 ;; Settings for column-style == :fixed
@@ -46,10 +61,10 @@
 ;;   http://patentimages.storage.googleapis.com/EP0219944A2/imgf0002.png
 ;; Fixed-z overrides the z portion of the column ofsets above.
 ;; NOTE: THIS DOESN'T WORK QUITE LIKE I'D HOPED.
-; (def fixed-angles [(deg2rad 10) (deg2rad 10) 0 0 0 (deg2rad -15) (deg2rad -15)])
-; (def fixed-x [-41.5 -22.5 0 20.3 41.4 65.5 89.6])  ; relative to the middle finger
-; (def fixed-z [12.1    8.3 0  5   10.7 14.5 17.5])
-; (def fixed-tenting (deg2rad 0))
+(def fixed-angles [(deg2rad 10) (deg2rad 10) 0 0 0 (deg2rad -15) (deg2rad -15)])
+(def fixed-x [-41.5 -22.5 0 20.3 41.4 65.5 89.6])  ; relative to the middle finger
+(def fixed-z [12.1    8.3 0  5   10.7 14.5 17.5])
+(def fixed-tenting (deg2rad 0))
 
 ;;;;;;;;;;;;;;;;;;;;;;;
 ;; General variables ;;
@@ -98,10 +113,13 @@
 ;; SA Keycaps ;;
 ;;;;;;;;;;;;;;;;
 
-(def sa-length 18.25)
-(def sa-double-length 37.5)
-(def sa-cap {1 (let [bl2 (/ 18.5 2)
-                     m (/ 17 2)
+;(def sa-length 18.25)
+(def sa-length 17)
+;(def sa-double-length 37.5)
+(def sa-double-length (* 2 sa-length))
+;(def sa-cap {1 (let [bl2 (/ 18.5 2)
+(def sa-cap {1 (let [bl2 (/ sa-length 2)
+                     m (/ (- sa-length 1) 2)
                      key-cap (hull (->> (polygon [[bl2 bl2] [bl2 (- bl2)] [(- bl2) (- bl2)] [(- bl2) bl2]])
                                         (extrude-linear {:height 0.1 :twist 0 :convexity 0})
                                         (translate [0 0 0.05]))
@@ -292,59 +310,156 @@
   (map + (key-position 1 cornerrow [(/ mount-width 2) (- (/ mount-height 2)) 0])
          thumb-offsets))
 ; (pr thumborigin)
+;bru - since the functions themselves can't be modified, consider the following:
+;create list/matrix with the default values (rotation + translation) of the thumb clusters
+;then create a function to apply whatever adjustment to these values
+;use these values as part of the functions
+;lets set the values as follows:
+;for tr, tl, mr, ml, br, bl: 
+;rot x, y, z, trans x, y ,z
+(def origThumbPos [[10 -23 10 -12 -16 3]
+                   [10 -23 10 -32 -15 -2]
+                   [-6 -34 48 -29 -40 -13]
+                   [6 -34 40 -51 -25 -12]
+                   [-16 -33 54 -37.8 -55.3 -25.3]
+                   [-4 -35 52 -56.3 -43.3 -23.5]])
+
+
+(defn rotateTKeyX [deg row] 
+  (conj (mapv + [deg 0 0] row) 
+        (row 3)
+        (* (row 4) (Math/cos (deg2rad deg)) (Math/cos (deg2rad deg)))
+        (+ (row 5) (* (row 4) (Math/sin (deg2rad deg)) (Math/cos (deg2rad deg))))))
+(defn rotateTKeyY [deg row] 
+  (conj (mapv + [0 deg 0] row) 
+        (* (row 3) (Math/cos (deg2rad deg)) (Math/cos (deg2rad deg)))
+        (row 4)
+        (+ (row 5) (* (row 3) (Math/sin (deg2rad deg)) (Math/cos (deg2rad deg))))))
+(defn rotateTKeyZ [deg row] 
+  (conj (mapv + [0 0 deg] row) 
+        (* (row 3) (Math/cos (deg2rad deg)) (Math/cos (deg2rad deg)))
+        (+ (row 4) (* (row 3) (Math/sin (deg2rad deg)) (Math/cos (deg2rad deg))))
+        (row 5)))
+
+(defn rotateThumb [rotVec thumbMat]
+    (vec (for [ckey thumbMat]
+          (->> ckey
+              (rotateTKeyX (rotVec 0))
+              (rotateTKeyY (rotVec 1))
+              (rotateTKeyZ (rotVec 2))))))
+
+(defn modThumbOffset [pos thumbMat]
+  (vec (for [ckey thumbMat]
+         (apply conj (subvec ckey 0 3)
+                (mapv + pos (subvec ckey 3))))))
+
+
+(def thumbPos (rotateThumb [0 0 0] (modThumbOffset thumborigin origThumbPos)))
+;(println thumbPos)
+;(println origThumbPos)
+;(println (modThumbOffset thumborigin origThumbPos))
+;(println thumborigin)
+(def thumbDegOffset [0 20 -13])
 
 (defn thumb-tr-place [shape]
   (->> shape
       ;  (rotate (deg2rad  10) [1 0 0])
       ;  (rotate (deg2rad -23) [0 1 0])
       ;  (rotate (deg2rad  -3) [0 0 1])
-       (rotate (deg2rad  10) [1 0 0])
-       (rotate (deg2rad -23) [0 1 0])
-       (rotate (deg2rad  10) [0 0 1])
-       (translate thumborigin)
-       (translate [-12 -16 3])
+       ;(translate [-12 -16 3])
+       (rotate (deg2rad  ((thumbPos 0)0)) [1 0 0])
+       (rotate (deg2rad ((thumbPos 0)1)) [0 1 0])
+       (rotate (deg2rad  ((thumbPos 0)2)) [0 0 1])
+       (translate (subvec (thumbPos 0) 3))
+       (rotate (deg2rad (thumbDegOffset 0)) [1 0 0])
+       (rotate (deg2rad (thumbDegOffset 1)) [0 1 0])
+       (rotate (deg2rad (thumbDegOffset 2)) [0 0 1])
        ))
 (defn thumb-tl-place [shape]
   (->> shape
-      ;  (rotate (deg2rad  10) [1 0 0])
-      ;  (rotate (deg2rad -23) [0 1 0])
-      ;  (rotate (deg2rad  -3) [0 0 1])
-       (rotate (deg2rad  10) [1 0 0])
-       (rotate (deg2rad -23) [0 1 0])
-       (rotate (deg2rad  10) [0 0 1])
-       (translate thumborigin)
-       (translate [-32 -15 -2])))
+       ;(rotate (deg2rad  10) [1 0 0])
+       ;(rotate (deg2rad -23) [0 1 0])
+       ;(rotate (deg2rad  10) [0 0 1])
+       ;(translate thumborigin)
+       ;(translate [-32 -15 -2])))
+       (rotate (deg2rad  ((thumbPos 1)0)) [1 0 0])
+       (rotate (deg2rad ((thumbPos 1)1)) [0 1 0])
+       (rotate (deg2rad  ((thumbPos 1)2)) [0 0 1])
+       (translate (subvec (thumbPos 1) 3))
+       (rotate (deg2rad (thumbDegOffset 0)) [1 0 0])
+       (rotate (deg2rad (thumbDegOffset 1)) [0 1 0])
+       (rotate (deg2rad (thumbDegOffset 2)) [0 0 1])
+       ;(translate thumborigin)
+       ))
 (defn thumb-mr-place [shape]
   (->> shape
-       (rotate (deg2rad  -6) [1 0 0])
-       (rotate (deg2rad -34) [0 1 0])
-       (rotate (deg2rad  48) [0 0 1])
-       (translate thumborigin)
-       (translate [-29 -40 -13])
+       ;(rotate (deg2rad  -6) [1 0 0])
+       ;(rotate (deg2rad -34) [0 1 0])
+       ;(rotate (deg2rad  48) [0 0 1])
+       ;(translate thumborigin)
+       ;(translate [-29 -40 -13])
+       ;))
+       (rotate (deg2rad  ((thumbPos 2)0)) [1 0 0])
+       (rotate (deg2rad ((thumbPos 2)1)) [0 1 0])
+       (rotate (deg2rad  ((thumbPos 2)2)) [0 0 1])
+       (translate (subvec (thumbPos 2) 3))
+       (rotate (deg2rad (thumbDegOffset 0)) [1 0 0])
+       (rotate (deg2rad (thumbDegOffset 1)) [0 1 0])
+       (rotate (deg2rad (thumbDegOffset 2)) [0 0 1])
+       ;(translate thumborigin)
        ))
 (defn thumb-ml-place [shape]
   (->> shape
-       (rotate (deg2rad   6) [1 0 0])
-       (rotate (deg2rad -34) [0 1 0])
-       (rotate (deg2rad  40) [0 0 1])
-       (translate thumborigin)
-       (translate [-51 -25 -12])))
+       ;(rotate (deg2rad   6) [1 0 0])
+       ;(rotate (deg2rad -34) [0 1 0])
+       ;(rotate (deg2rad  40) [0 0 1])
+       ;(translate thumborigin)
+       ;(translate [-51 -25 -12])))
+       (rotate (deg2rad  ((thumbPos 3)0)) [1 0 0])
+       (rotate (deg2rad ((thumbPos 3)1)) [0 1 0])
+       (rotate (deg2rad  ((thumbPos 3)2)) [0 0 1])
+       (translate (subvec (thumbPos 3) 3))
+       (rotate (deg2rad (thumbDegOffset 0)) [1 0 0])
+       (rotate (deg2rad (thumbDegOffset 1)) [0 1 0])
+       (rotate (deg2rad (thumbDegOffset 2)) [0 0 1])
+       ;(translate thumborigin)
+       ))
 (defn thumb-br-place [shape]
   (->> shape
-       (rotate (deg2rad -16) [1 0 0])
-       (rotate (deg2rad -33) [0 1 0])
-       (rotate (deg2rad  54) [0 0 1])
-       (translate thumborigin)
-       (translate [-37.8 -55.3 -25.3])
+       ;(rotate (deg2rad -16) [1 0 0])
+       ;(rotate (deg2rad -33) [0 1 0])
+       ;(rotate (deg2rad  54) [0 0 1])
+       ;(translate thumborigin)
+       ;(translate [-37.8 -55.3 -25.3])
+       ;))
+       (rotate (deg2rad  ((thumbPos 4)0)) [1 0 0])
+       (rotate (deg2rad ((thumbPos 4)1)) [0 1 0])
+       (rotate (deg2rad  ((thumbPos 4)2)) [0 0 1])
+       (translate (subvec (thumbPos 4) 3))
+       (rotate (deg2rad (thumbDegOffset 0)) [1 0 0])
+       (rotate (deg2rad (thumbDegOffset 1)) [0 1 0])
+       (rotate (deg2rad (thumbDegOffset 2)) [0 0 1])
+       ;(translate thumborigin)
        ))
 (defn thumb-bl-place [shape]
   (->> shape
-       (rotate (deg2rad  -4) [1 0 0])
-       (rotate (deg2rad -35) [0 1 0])
-       (rotate (deg2rad  52) [0 0 1])
-       (translate thumborigin)
-       (translate [-56.3 -43.3 -23.5])
+       ;(rotate (deg2rad  -4) [1 0 0])
+       ;(rotate (deg2rad -35) [0 1 0])
+       ;(rotate (deg2rad  52) [0 0 1])
+       ;(translate thumborigin)
+       ;(translate [-56.3 -43.3 -23.5])
+       ;))
+       (rotate (deg2rad  ((thumbPos 5)0)) [1 0 0])
+       (rotate (deg2rad ((thumbPos 5)1)) [0 1 0])
+       (rotate (deg2rad  ((thumbPos 5)2)) [0 0 1])
+       (translate (subvec (thumbPos 5) 3))
+       (rotate (deg2rad (thumbDegOffset 0)) [1 0 0])
+       (rotate (deg2rad (thumbDegOffset 1)) [0 1 0])
+       (rotate (deg2rad (thumbDegOffset 2)) [0 0 1])
+       ;(translate thumborigin)
        ))
+
+;bru stopped here. Looking to change thumb cluster angles. Alsdo need to fix heat insert locations
 
 (defn thumb-1x-layout [shape]
   (union
@@ -372,12 +487,26 @@
    (thumb-15x-layout (rotate (/ π 2) [0 0 1] (sa-cap 1.5)))))
 
 
+;(def thumb
+;  (union
+;   (thumb-1x-layout single-plate)
+;   (thumb-15x-layout single-plate)
+;   (thumb-15x-layout larger-plate)
+;   ))
+
 (def thumb
-  (union
-   (thumb-1x-layout single-plate)
-   (thumb-15x-layout single-plate)
-   (thumb-15x-layout larger-plate)
-   ))
+  (->>
+   ;(rotate (deg2rad  -4) [1 0 0])
+   ;(rotate (deg2rad -35) [0 1 0])
+   ;(rotate (deg2rad  52) [0 0 1])
+    (union
+     (thumb-1x-layout single-plate)
+     (thumb-15x-layout single-plate)
+     (thumb-15x-layout larger-plate)
+     )
+    ;(translate (mapv * [-1 -1 -1] thumborigin))
+  )
+)
 
 (def thumb-post-tr (translate [(- (/ mount-width 2) post-adj)  (- (/ mount-height  1.15) post-adj) 0] web-post))
 (def thumb-post-tl (translate [(+ (/ mount-width -2) post-adj) (- (/ mount-height  1.15) post-adj) 0] web-post))
@@ -504,7 +633,11 @@
 (defn key-wall-brace [x1 y1 dx1 dy1 post1 x2 y2 dx2 dy2 post2]
   (wall-brace (partial key-place x1 y1) dx1 dy1 post1
               (partial key-place x2 y2) dx2 dy2 post2))
-
+; for back wall: gets expanded as follows
+; keywallbravce 0 0 0 1 wptl
+; wall brace keyplace 0 0 0 1 wptl
+; hull (keyplace 0 0) wptl
+;      (keyplace 0 0) translave (walllocate 0 1) wptl
 (def case-walls
   (union
    ; back wall
@@ -581,7 +714,12 @@
      (thumb-ml-place (translate (wall-locate3 -0.3 1) web-post-tr))
      (thumb-tl-place thumb-post-tl))
   ))
-
+;added here so that connectors can reference it
+(def wallY (second (map +
+      [0 0 (/ web-thickness -2)]
+      [0 0 (+ (/ web-thickness -2) plate-thickness)]
+      (key-position 0 0 [(- (/ mount-width 2) post-adj) (- (/ mount-height 2) post-adj) 0])
+      (wall-locate2 0 1))))
 
 (def rj9-start  (map + [0 -3  0] (key-position 0 0 (map + (wall-locate3 0 1) [0 (/ mount-height  2) 0]))))
 (def rj9-position  [(first rj9-start) (second rj9-start) 11])
@@ -591,6 +729,16 @@
                   (difference rj9-cube
                               (union (translate [0 2 0] (cube 10.78  9 18.38))
                                      (translate [0 0 5] (cube 10.78 13  5))))))
+
+
+(def trs-start  (map + [0 -3  0] (key-position 0 0 (map + (wall-locate3 0 1) [0 (/ mount-height  2) 0]))))
+(def trs-position  [(first trs-start) (second trs-start) 11])
+(def trs-cylinder (cylinder (/ 5.85 2), 20))
+(def trs-cut
+  (translate [3, 0, 0] (rotate (/ pi -2) [1 0 0] trs-cylinder)))
+
+(def trs-space (translate trs-position trs-cut))
+
 
 (def usb-holder-position (key-position 1 0 (map + (wall-locate2 0 1) [0 (/ mount-height 2) 0])))
 (def usb-holder-size [6.5 10.0 13.6])
@@ -616,6 +764,293 @@
 (def teensy-holder-length (- (second teensy-top-xy) (second teensy-bot-xy)))
 (def teensy-holder-offset (/ teensy-holder-length -2))
 (def teensy-holder-top-offset (- (/ teensy-holder-top-length 2) teensy-holder-length))
+
+;bru place promicro
+(def trs-box-dims [18 (+ 0.5 14.750) (+ 0.5 6.70)])
+(def trs-box (->>
+               (apply cube trs-box-dims)
+               (translate [0 -1 (/ (last trs-box-dims) 2)]))
+) ;trs-box makes box to the same dimensions of trs connector for easier referencing
+
+;(def test-pos (key-position 0 0 (map + (wall-locate2 0 1) [0 (+ -3.8 2) 0 ])))
+;(def test-pos (key-position 0 0 (map + (wall-locate2 0 1) [0 -1 0 ])))
+;(println (key-position 0 0 (map + (wall-locate1 0 1) [0 0 0 ])))
+;(println (key-position 0 0 (map + (wall-locate2 0 1) [0 0 0 ])))
+;(println (key-position 0 0 (map + (wall-locate3 0 1) [0 0 0 ])))
+;(println (wall-locate1 0 1))
+;(println (wall-locate2 0 1))
+;(println (wall-locate3 0 1))
+;(println web-post-tl)
+;(def test-pos (key-position 0 0 (map + (wall-locate2 0 1) [0 (+ wall-xy-offset -4) 0 ])))
+;wall-xy-offset - was 8 originally. with 8, was using -1 offset. -1 = 8 - 9
+;(def test-pos (key-position 1 0 (wall-locate2 0 1)))
+;change static values into variables
+(def trshold-thick 2)
+(def trs-depth 20)
+(def trs-height 16)
+(def trshold-wireOffset -3)
+(def trshole-clipsize 2)
+(def trshole-outsize 3)
+(def tol 0.2)
+(def trs-holder-dims [(+ trshold-wireOffset (+ trshold-thick (first trs-box-dims)))
+                      (+ (* 2 trshold-thick) (second trs-box-dims))
+                      (+ (* 2 trshold-thick) (last trs-box-dims))])
+(def trs-holder-cuts 
+  (union
+    (->> (cylinder trshole-outsize 10)
+         (rotate (deg2rad 90) [1 0 0])
+         (translate [-3.5 -9 3.75])
+         )
+    (->> (cube trshole-clipsize 10 trshole-clipsize)
+         (translate [1 8 3])
+    )
+    (->> (cube trshole-clipsize 10 trshole-clipsize)
+         (translate [-8 8 3])
+    )
+    (->> 
+      trs-box
+      (resize (mapv + (repeat 3 tol) trs-box-dims))
+      (translate [0 0 (/ tol -2)])
+      )
+    (->> 
+      trs-box
+      (resize (mapv + (repeat 3 tol) trs-box-dims))
+      (translate [10 0 (/ tol -2)]))))
+
+(def trs-holder
+    (difference
+      (->> (apply cube trs-holder-dims)
+           (translate [(/ (+ (* -1 trshold-thick) trshold-wireOffset) 2) -1  (- (/ (last trs-box-dims) 2) 0)]))
+      (->>
+        (cube 50 (+ (second trs-box-dims) tol) 50)
+        (translate [0 (* -1 (+ (second trs-box-dims) tol)) 0]))
+      ;(->> 
+      ;  trs-box
+      ;  (resize (mapv + (repeat 3 tol) trs-box-dims))
+      ;  (translate [0 -10 (/ tol -2)])
+      ;  )
+      trs-holder-cuts))
+      ;trs-model))
+
+
+(def wallStart [(+ (/ mount-width -2) post-adj) (- (/ mount-height 2) post-adj) 0])
+(def wallStartl (wall-locate2 0 1))
+(def wallStartk (key-position 0 0 [0 0 0]))
+(def wallPos 
+  (->> 
+    (map + wallStart wallStartl wallStartk)
+    (map * [1 1 0])))
+
+;(def test-pos (key-position 0 0 (map + (wall-locate1 0 1) [0 -0.5 0 ])))
+(println wallPos)
+;offset from the wall is -0.4 for trs
+;(def test-pos (map + wallPos [5 (+ (- -0.4 1.5) (/ (last trs-holder-dims) -2)) 0]))
+(def test-pos [(+ (first wallPos) 7) (+ 0.7 -1.5 (- wallY (/ (last trs-holder-dims) 2))) 0])
+
+(def trs-cuts-placed
+  (->> 
+    trs-holder-cuts
+    (rotate (deg2rad 90) [0 1 0])
+    (rotate (deg2rad 180) [1 0 0])
+    ;(cube 10 10 10)
+    ;(translate [0 0 1])
+    ;(translate [(first test-pos) (second test-pos) 10])
+    ;(translate [(first test-pos) (second test-pos) (/ (second trs-holder-dims) 2)])
+    (translate [(first test-pos) (second test-pos) (- (/ (first trs-holder-dims) 2) (/ (+ (* -1 trshold-thick) trshold-wireOffset) 2))])
+    )
+)
+(def trs-placed 
+  (->> 
+    trs-holder
+    (rotate (deg2rad 90) [0 1 0])
+    (rotate (deg2rad 180) [1 0 0])
+    ;(cube 10 10 10)
+    ;(translate [0 0 1])
+    (translate [(first test-pos) (second test-pos) (- (/ (first trs-holder-dims) 2) (/ (+ (* -1 trshold-thick) trshold-wireOffset) 2))])
+    )
+)
+
+;bru-usb
+(def usbPcbDims [13 14 1.5])
+(def usbBoltDiam 3)
+(def usbConnDims [7.5 5.7 2.2])
+(def usbBoltHole (binding [*fn* 16] (cylinder (/ usbBoltDiam 2) 10)))
+;inner tan is 5.9. 1.5 from edge to center. middle to inner tan is 5.9/2
+(def usbBoltLoc [(+ (/ usbBoltDiam 2) (/ 5.9 2)) 0.2 0])
+(def usbBoltHolePlaced 
+  (->> usbBoltHole
+       (translate usbBoltLoc)))
+
+(def usb-model
+  (union 
+    (difference 
+      (->> 
+        (apply cube usbPcbDims)
+        (translate [0 0 (/ (last usbPcbDims) 2)])
+      )
+      usbBoltHolePlaced
+      (mirror [1 0 0] usbBoltHolePlaced)
+    )
+    (->>
+      (apply cube usbConnDims)
+      (translate [0
+                  (+ 0.5 (- (/ (second usbPcbDims) 2) (/ (second usbConnDims) 2)))
+                  (+ (last usbPcbDims) (/ (last usbConnDims) 2))])
+    ) 
+  )
+)
+
+(def usbHoldCutDims [(+ (* 2 tol) (first usbPcbDims)) 
+                     (second usbPcbDims)
+                     (+ (* 2 tol) (+ (last usbPcbDims) (last usbConnDims)))])
+(def usbHoldCutOutDims [(+ (* 2 tol) (first usbConnDims)) 10 (+ (* 2 tol) (last usbConnDims))])
+(def usbHoldCut
+  (union 
+    (->>
+      (apply cube usbHoldCutDims)
+      (translate [0 tol (/ (last usbHoldCutDims) 2)])
+    )
+    (->>
+      (apply cube usbHoldCutOutDims)
+      (translate [0 (/ (second usbPcbDims) 2) (+ (- (last usbPcbDims) tol) (/ (last usbHoldCutOutDims) 2))])
+    )
+  )
+)
+(def usbHoldBaseDims [(+ 4 (first usbPcbDims)) (- (second usbPcbDims) 2) 2])
+(def usbHoldBase 
+  (difference 
+    (->>
+      (apply cube usbHoldBaseDims)
+      (translate [0 2 (/ (last usbHoldBaseDims) -2)])
+    )
+    usbBoltHolePlaced
+    (mirror [1 0 0] usbBoltHolePlaced)
+  )
+)
+
+(def usbTestWallDims [20 3 30])
+(def usbTestWall
+  (->>
+    (apply cube usbTestWallDims)
+    (translate [0 (+ 1 (-  (/ (second usbPcbDims) 2) (/ (second usbTestWallDims) 2)))  0])
+  )
+)
+
+;(def usbHoldPos (key-position 1 0 (map + (wall-locate2 0 1) [0 1 0])))
+(def usbHoldPos (map + [(first wallPos) wallY 0] [25 (/ (second usbHoldBaseDims) -2) 0] [0 1 0]))
+(def usbHoldPlaced
+  (->>
+    usbHoldBase
+    (rotate (deg2rad 90) [0 1 0])
+    (translate [(first usbHoldPos) (second usbHoldPos) (/ (first usbHoldBaseDims) 2)])
+  )
+)
+(def usbHoldCutPlaced
+  (->>
+    usbHoldCut
+    (rotate (deg2rad 90) [0 1 0])
+    (translate [(first usbHoldPos) (second usbHoldPos) (/ (first usbHoldBaseDims) 2)])
+  )
+)
+
+
+;(print (map + (wall-locate2 0 1) [0 (/ mount-height 2) 0 ]))
+;(print (wall-locate2 0 1))
+;(print mount-height)
+;(print (key-position 1 0 (map + (wall-locate2 0 1) [0 (/ mount-height 2) 0 ])))
+(def proMicroBoxDims [17.8 34.5 4])
+(def pro-micro-box (apply cube proMicroBoxDims))
+(def pro-micro-placed
+  (->>
+    pro-micro-model
+    (rotate (deg2rad 90) [0 0 -1])
+    (translate [-79 2 20])
+  )
+)
+(def proMicroHoldClipDims [(- (first proMicroBoxDims) 6)
+                           (+ 6 (second proMicroBoxDims))
+                           (+ 4 (last proMicroBoxDims))
+                           ]
+)
+(def proMicroHoldClipCutDims [(+ (first proMicroBoxDims) (* 2 tol))
+                              ;(second proMicroHoldClipDims)
+                              (+ (second proMicroBoxDims) (* 2 tol))
+                              (last proMicroHoldClipDims)
+                              ]
+)
+(def proMicroHoldBaseDims [(+ (first proMicroBoxDims) 10)
+                           (second proMicroHoldClipDims)
+                           (+ (last proMicroBoxDims) 10)
+                           ]
+)
+(def proMicroHoldBase
+  (difference 
+    (apply cube proMicroHoldBaseDims)
+    (->> 
+      (apply cube proMicroHoldBaseDims)
+      (translate [(- (/ (first proMicroHoldBaseDims) 2) (+ tol (/ (first proMicroBoxDims) 2))) 
+                  0 
+                  (- (/ (last proMicroHoldBaseDims) 2) (+ tol (/ (last proMicroBoxDims) 2)))])
+    )
+  )
+)
+(def proMicroHoldStopDims [(first proMicroBoxDims)
+                           2
+                           (+ 2 (last proMicroBoxDims))
+                           ]
+)
+(def proMicroHoldStop
+  (difference 
+    (apply cube proMicroHoldStopDims)
+    (->>
+      (apply cube proMicroHoldStopDims)
+      (translate [(/ (first proMicroHoldStopDims) -2)
+                  0 
+                  (last proMicroBoxDims)])
+    )
+  )
+)
+
+(def proMicroHold 
+  (->>
+    (union 
+      (difference 
+        (->>
+          (apply cube proMicroHoldClipDims)
+          ;(translate [0 -1 0])
+        )
+        (->>
+          (apply cube proMicroHoldClipCutDims)
+          (translate [0 
+                      (- (/ (- (second proMicroHoldClipCutDims) (second proMicroBoxDims)) 2) tol)
+                      (- tol (/ (- (last proMicroHoldClipCutDims) (last proMicroBoxDims)) 2))
+                      ])
+        )
+        (->>
+          (apply cube proMicroHoldClipCutDims)
+          (translate [0 
+                      (second proMicroBoxDims) 
+                      (- tol (+ (/ (- (last proMicroHoldClipCutDims) (last proMicroBoxDims)) 2) (last proMicroBoxDims)))
+                      ])
+        )
+    )
+    proMicroHoldBase)))
+
+;(def proMicroHoldPos (key-position 0 2 (map + (wall-locate2 -1 0) [(- (* -1 (/ (last proMicroHoldBaseDims) 2)) 2.6) 0 0])))
+(def proMicroHoldPos (key-position 0 2 (map + (wall-locate2 -1 0) [(- (* -1 (/ (last proMicroHoldBaseDims) 2)) 2.0) 15 0])))
+
+(def proMicroHoldPlaced 
+  (->> 
+    proMicroHold
+    (rotate (deg2rad 90) [0 -1 0])
+    (rotate (deg2rad 180) [0 0 1])
+    (rotate (deg2rad -8) [0 0 1])
+    (translate [(first proMicroHoldPos) (second proMicroHoldPos) (/ (first proMicroHoldBaseDims) 2)])
+  )
+)
+
+
+;bru-end
 
 (def teensy-holder
     (->>
@@ -658,9 +1093,9 @@
 (defn screw-insert-all-shapes [bottom-radius top-radius height]
   (union (screw-insert 0 0         bottom-radius top-radius height)
          (screw-insert 0 (- lastrow 0.6)   bottom-radius top-radius height)
-         (screw-insert 2 (+ lastrow 0.35)  bottom-radius top-radius height)
+         (screw-insert 1.3 (+ lastrow 0.35)  bottom-radius top-radius height)
          (screw-insert 3 0         bottom-radius top-radius height)
-         (screw-insert lastcol 1   bottom-radius top-radius height)
+         (screw-insert (+ lastcol 0.05) 1   bottom-radius top-radius height)
          ))
 (def screw-insert-height 3.8)
 (def screw-insert-bottom-radius (/ 5.31 2))
@@ -692,7 +1127,48 @@
         (key-place column row (translate [5 0 0] (wire-post  1 0)))))))
 
 
-(def model-right (difference
+;(def wallStart  (map + [0 0  0] (key-position 0 0 (map + (wall-locate2 0 1) [0 (/ mount-height  2) 0]))))
+;(def wallStart  (key-position 0 0 [0 0 0]))
+;(def wallStart  (key-position 0 0 (wall-locate3 0 1)))
+;(def web-post-tr (translate [(- (/ mount-width 2) post-adj) (- (/ mount-height 2) post-adj) 0] web-post))
+;(def web-post-tl (translate [(+ (/ mount-width -2) post-adj) (- (/ mount-height 2) post-adj) 0] web-post))
+;(def web-post-bl (translate [(+ (/ mount-width -2) post-adj) (+ (/ mount-height -2) post-adj) 0] web-post))
+;(def web-post-br (translate [(- (/ mount-width 2) post-adj) (+ (/ mount-height -2) post-adj) 0] web-post))
+
+
+(println 
+      (rotate-around-y tenting-angle [(- (first wallStart) 0) (- (second wallStart) 10) 0]))
+(println [(- (first wallStart) 0) (- (second wallStart) 10) 0])
+
+(def wallTest 
+  (union
+   ;(for [x (range 0 1)] (key-wall-brace x 0 0 1 web-post-tl x       0 0 1 web-post-tr))
+   ;(for [x (range 1 ncols)] (key-wall-brace x 0 0 1 web-post-tl (dec x) 0 0 1 web-post-tr))
+   ;(key-wall-brace lastcol 0 0 1 web-post-tr lastcol 0 1 0 web-post-tr)
+    (->>
+      web-post-tr
+      (color [0 1 0]))
+    (->>
+      (cube 1 1 1)
+      (color [1 0 0])
+      ;(translate [(+ 5 (first test-pos)) (+ 5 (second test-pos)) (- (/ (first trs-holder-dims) 2) (/ (+ (* -1 trshold-thick) trshold-wireOffset) 2))])
+      (translate [0 -5 0])
+      (translate wallPos)
+      )
+    (->>
+      (cube 1 1 1)
+      (color [1 0 0])
+      (translate [(first (key-position 0 1 [0 0 0])) wallY 0.5])
+      )
+    (->>
+      (cube 1 1 1)
+      (color [1 0 0])
+      ;(translate [(+ 5 (first test-pos)) (+ 5 (second test-pos)) (- (/ (first trs-holder-dims) 2) (/ (+ (* -1 trshold-thick) trshold-wireOffset) 2))])
+      (key-place 0 0)
+      )))
+
+(def model-right 
+  (difference
                    (union
                     key-holes
                     connectors
@@ -700,62 +1176,121 @@
                     thumb-connectors
                     (difference (union case-walls
                                        screw-insert-outers
-                                       teensy-holder)
-                                       ; usb-holder)
-                                ; rj9-space
-                                ; usb-holder-hole
+                                       ;trs-placed
+                                       usbHoldPlaced
+                                       ;teensy-holder
+                                       ;usb-holder
+                                       proMicroHoldPlaced)
+                                 ;rj9-space
+                                ;trs-space
+                                ;usb-holder-hole
+                                ;trs-cuts-placed
+                                usbHoldCutPlaced
                                 screw-insert-holes)
-                    ; rj9-holder
-                    wire-posts
+                     ;rj9-holder
+                    ;wire-posts
                     ; thumbcaps
-                    ; caps
+                    ;caps
                     )
                    (translate [0 0 -20] (cube 350 350 40))
-                  ))
+                  )
+  )
 
-(spit "things/right.scad"
-      (write-scad model-right))
+(def leftTrsOffset 7)
+(def model-left 
+  (difference
+    (union
+      (->> 
+        trs-placed
+        (translate [(- (* -2 (first test-pos)) leftTrsOffset) 0 0])
+      )
+      (->> 
+        model-right
+        (mirror [-1 0 0])
+      )
+    )
+    (->> 
+      trs-cuts-placed
+      (translate [(- (* -2 (first test-pos)) leftTrsOffset) 0 0])
+    )
+  )
+)
 
-(spit "things/left.scad"
-      (write-scad (mirror [-1 0 0] model-right)))
+(def model-right
+  (difference 
+    (union
+      model-right
+      trs-placed
+      ;wallTest
+    )
+    trs-cuts-placed
+  )
+)
 
-(spit "things/right-test.scad"
-      (write-scad
-                   (union
-                    key-holes
-                    connectors
-                    thumb
-                    thumb-connectors
-                    case-walls
-                    thumbcaps
-                    caps
-                    teensy-holder
-                    ; rj9-holder
-                    ; usb-holder-hole
-                    ; usb-holder-hole
-                    ; ; teensy-holder-hole
-                    ;             screw-insert-outers
-                    ;             teensy-screw-insert-holes
-                    ;             teensy-screw-insert-outers
-                    ;             usb-cutout
-                    ;             rj9-space
-                                ; wire-posts
+
+(def connTest 
+      (intersection 
+                (->> 
+                  ;(cube 100 100 100)
+                  ;(cube 1000 1000 1000)
+                  (cube 80 80 40)
+                  (translate [-64 40 10])
+                )
+                model-right))
+
+
+
+;(spit "things/right-test.scad"
+;      (write-scad
+;                   (union
+;                    key-holes
+;                    connectors
+;                    thumb
+;                    thumb-connectors
+;                    case-walls
+;                    thumbcaps
+;                    caps
+;                    teensy-holder
+;                    trs-model
+;                    ; rj9-holder
+;                    ; usb-holder-hole
+;                    ; usb-holder-hole
+;                    ; ; teensy-holder-hole
+;                    ;             screw-insert-outers
+;                    ;             teensy-screw-insert-holes
+;                    ;             teensy-screw-insert-outers
+;                    ;             usb-cutout
+;                    ;             rj9-space
+;                                ; wire-posts
+;                  )))
+(def right-plate
+    (cut
+        (translate [0 0 -0.1]
+          (difference (union case-walls
+                            teensy-holder
+                            ; rj9-holder
+                            screw-insert-outers)
+                      (translate [0 0 -10] screw-insert-screw-holes))
                   )))
 
-(spit "things/right-plate.scad"
-      (write-scad
-                   (cut
-                     (translate [0 0 -0.1]
-                       (difference (union case-walls
-                                          teensy-holder
-                                          ; rj9-holder
-                                          screw-insert-outers)
-                                   (translate [0 0 -10] screw-insert-screw-holes))
-                  ))))
+(def testscad
+         ;(difference usb-holder usb-holder-hole))
+         ;(union trs-model trs-placed trs-box))
+         (union 
+           ;proMicroHold
+           ;proMicroHoldStop
+           ;single-plate
+           trs-holder
+           ;pro-micro-box
+         )
+       )
 
-(spit "things/test.scad"
-      (write-scad
-         (difference usb-holder usb-holder-hole)))
+;(spit "things/test.scad" (write-scad testscad))
+(spit "things/right.scad" (write-scad model-right))
+;(spit "things/left.scad" (write-scad model-left))
+(spit "things/connTest.scad" (write-scad connTest))
+;(spit "things/cube.scad" (write-scad (cube 10 10 10)))
+;(spit "things/right-plate.scad" (write-scad right-plate))
 
 
 

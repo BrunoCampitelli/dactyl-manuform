@@ -1,0 +1,22 @@
+Notes for functions:
+
+key-position - column row position -> apply-key-geometry?
+
+wall-locate positions object relative to different sections of the wall
+wall-locate1-3 - dx dy
+1 returns list of dx*wallthickness dy*wall-thickness -1 > just returns
+multiple of wall thickness?
+2 returns list of dx dy multiples of wall-xy-offset and z offset
+3 returns list of dx dy multiple of offset+thickness
+
+wall-xy-offset is where the wall starts sloping
+mount-height is keyswitch height + 3 THIS MEANS the "height" of the physical
+switch when looked at from above
+
+
+key-spacing parameters:
+extra-height
+extra-width
+
+y - openscad 8-11.7= 3.7 real=4
+x - openscad 18-20=2 real=3
