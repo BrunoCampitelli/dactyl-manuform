@@ -1,3 +1,19 @@
+# Bruno's edits:
+
+The following is a list of some of the modifications I've added:
+
+* Added holder for pro-micro
+* Added holder for TRS connector
+* Added holder for separate USB connector
+* Added outer wall tracking function to keep from having to adjust connector location on each modification
+* Increased curvature on x axis
+* Decreased spacing between keys
+* Changed thumb cluster to have a more shallow angle
+* Decreased number of rows and columns to 4x5
+* Decreased height of the keyboard
+
+Rest of the original README:
+
 # The Dactyl-ManuForm Keyboard
 This is a fork of the [Dactyl](https://github.com/adereth/dactyl-keyboard), a parameterized, split-hand, concave, columnar, ergonomic keyboard.
 
