@@ -11,6 +11,8 @@ The following is a list of some of the modifications I've added:
 * Changed thumb cluster to have a more shallow angle
 * Decreased number of rows and columns to 4x5
 * Decreased height of the keyboard
+* Added some notes about what the different functions of the program do
+* Added auto-run script to re-load the files automatically on file write
 
 Rest of the original README:
 
