@@ -172,8 +172,11 @@
 (def column-x-delta (+ -1 (- (* column-radius (Math/sin β)))))
 (def column-base-angle (* β (- centercol 2)))
 
-(defn apply-key-geometry [translate-fn rotate-x-fn rotate-y-fn column row shape]
+(def spreadRad (deg2rad 2))
+
+(defn apply-key-geometry [translate-fn rotate-x-fn rotate-y-fn rotate-z-fn column row shape]
   (let [column-angle (* β (- centercol column))
+        shape-rotate (fn [shape] (if-not (vector? shape) (rotate column-angle [0 0 1] shape) shape))
         placed-shape (->> shape
                           (translate-fn [0 0 (- row-radius)])
                           (rotate-x-fn  (* α (- centerrow row)))
@@ -187,8 +190,12 @@
                                 (translate-fn [0 0 (- row-radius)])
                                 (rotate-x-fn  (* α (- centerrow row)))
                                 (translate-fn [0 0 row-radius])
+                                ;replace this with rotate-z-fn. Might still need to figure out what this angle needs to be. I could also just make this an extra configurable parameter to start with
+                                ;makes the y rotation
                                 (rotate-y-fn  column-angle)
-                                (translate-fn [(- (* (- column centercol) column-x-delta)) 0 column-z-delta])
+                                (rotate-z-fn spreadRad column )
+                                ;spreads out into columns
+                                (translate-fn [(- (* (- column centercol) (* column-x-delta (+ 1 (* 0.02 (- (Math/abs (- column 2)))))))) 0 column-z-delta])
                                 (translate-fn (column-offset column)))
         placed-shape-fixed (->> shape
                                 (rotate-y-fn  (nth fixed-angles column))
@@ -210,6 +217,9 @@
   (apply-key-geometry translate
     (fn [angle obj] (rotate angle [1 0 0] obj))
     (fn [angle obj] (rotate angle [0 1 0] obj))
+    (fn [angle column obj] 
+      (let [modang (* angle (- (- centercol 0.5) column))]
+      (rotate modang [0 0 1] obj)))
     column row shape))
 
 (defn rotate-around-x [angle position]
@@ -226,8 +236,18 @@
     [(- (Math/sin angle)) 0 (Math/cos angle)]]
    position))
 
+;bru - need to figure out what this is supposed to be
+;this is an extention to the other ones.
+(defn rotate-around-z [angle column position]
+  (let [modang (* angle (- centercol column))]
+  (mmul
+   [[(Math/cos modang)     (- (Math/sin modang)) 0]
+    [(Math/sin modang)     (Math/cos modang) 0]
+    [0                    0 1]]
+   position)))
+
 (defn key-position [column row position]
-  (apply-key-geometry (partial map +) rotate-around-x rotate-around-y column row position))
+  (apply-key-geometry (partial map +) rotate-around-x rotate-around-y rotate-around-z column row position))
 
 
 (def key-holes
@@ -459,7 +479,6 @@
        ;(translate thumborigin)
        ))
 
-;bru stopped here. Looking to change thumb cluster angles. Alsdo need to fix heat insert locations
 
 (defn thumb-1x-layout [shape]
   (union
@@ -474,7 +493,7 @@
    (thumb-tl-place shape)))
 
 (def larger-plate
-  (let [plate-height (/ (- sa-double-length mount-height) 3)
+  (let [plate-height (+ (/ (- sa-double-length mount-height) 3) 1)
         top-plate (->> (cube mount-width plate-height web-thickness)
                        (translate [0 (/ (+ plate-height mount-height) 2)
                                    (- plate-thickness (/ web-thickness 2))]))
@@ -715,12 +734,17 @@
      (thumb-tl-place thumb-post-tl))
   ))
 ;added here so that connectors can reference it
-(def wallY (second (map +
-      [0 0 (/ web-thickness -2)]
-      [0 0 (+ (/ web-thickness -2) plate-thickness)]
-      (key-position 0 0 [(- (/ mount-width 2) post-adj) (- (/ mount-height 2) post-adj) 0])
-      (wall-locate2 0 1))))
+(defn wallY [column] 
+      (->>
+        (map +
+             ;[0 0 (+ (/ web-thickness -2) plate-thickness)]
+             [(+ (/ mount-width -2) post-adj) (- (/ mount-height 2) post-adj) 0]
+             (wall-locate3 0 1))
+        (key-position column 0)
+        (second)))
 
+(pr (wallY 0))
+      
 (def rj9-start  (map + [0 -3  0] (key-position 0 0 (map + (wall-locate3 0 1) [0 (/ mount-height  2) 0]))))
 (def rj9-position  [(first rj9-start) (second rj9-start) 11])
 (def rj9-cube   (cube 14.78 13 22.38))
@@ -845,13 +869,16 @@
 (println wallPos)
 ;offset from the wall is -0.4 for trs
 ;(def test-pos (map + wallPos [5 (+ (- -0.4 1.5) (/ (last trs-holder-dims) -2)) 0]))
-(def test-pos [(+ (first wallPos) 7) (+ 0.7 -1.5 (- wallY (/ (last trs-holder-dims) 2))) 0])
+;This is used to define the position for the trs connector
+(def test-pos [(+ (first wallPos) 9) (+ -5 (- (wallY 0) (/ (last trs-holder-dims) 2))) 0])
 
 (def trs-cuts-placed
   (->> 
     trs-holder-cuts
     (rotate (deg2rad 90) [0 1 0])
     (rotate (deg2rad 180) [1 0 0])
+    ;this is done to adjust the aligment with the wall after the key's z tilt
+    (rotate (deg2rad (* 3 (- (- centercol 0.5) 0))) [0 0 1])
     ;(cube 10 10 10)
     ;(translate [0 0 1])
     ;(translate [(first test-pos) (second test-pos) 10])
@@ -864,6 +891,8 @@
     trs-holder
     (rotate (deg2rad 90) [0 1 0])
     (rotate (deg2rad 180) [1 0 0])
+    ;this is done to adjust the aligment with the wall after the key's z tilt
+    (rotate (deg2rad (* 3 (- (- centercol 0.5) 0))) [0 0 1])
     ;(cube 10 10 10)
     ;(translate [0 0 1])
     (translate [(first test-pos) (second test-pos) (- (/ (first trs-holder-dims) 2) (/ (+ (* -1 trshold-thick) trshold-wireOffset) 2))])
@@ -937,11 +966,13 @@
 )
 
 ;(def usbHoldPos (key-position 1 0 (map + (wall-locate2 0 1) [0 1 0])))
-(def usbHoldPos (map + [(first wallPos) wallY 0] [25 (/ (second usbHoldBaseDims) -2) 0] [0 1 0]))
+(def usbHoldPos (map + [(first wallPos) (wallY 1) 0] [28 (/ (second usbHoldBaseDims) -2) 0] [0 -2 0]))
 (def usbHoldPlaced
   (->>
     usbHoldBase
     (rotate (deg2rad 90) [0 1 0])
+    ;this rotation is done in order to adjust the alignment with the wall
+    (rotate (deg2rad (* 3 (- (- centercol 0.5) 1))) [0 0 1])
     (translate [(first usbHoldPos) (second usbHoldPos) (/ (first usbHoldBaseDims) 2)])
   )
 )
@@ -949,6 +980,8 @@
   (->>
     usbHoldCut
     (rotate (deg2rad 90) [0 1 0])
+    ;this rotation is done in order to adjust the alignment with the wall
+    (rotate (deg2rad (* 3 (- (- centercol 0.5) 1))) [0 0 1])
     (translate [(first usbHoldPos) (second usbHoldPos) (/ (first usbHoldBaseDims) 2)])
   )
 )
@@ -1037,14 +1070,14 @@
     proMicroHoldBase)))
 
 ;(def proMicroHoldPos (key-position 0 2 (map + (wall-locate2 -1 0) [(- (* -1 (/ (last proMicroHoldBaseDims) 2)) 2.6) 0 0])))
-(def proMicroHoldPos (key-position 0 2 (map + (wall-locate2 -1 0) [(- (* -1 (/ (last proMicroHoldBaseDims) 2)) 2.0) 15 0])))
+(def proMicroHoldPos (key-position 0 2 (map + (wall-locate2 -1 0) [(- (* -1 (/ (last proMicroHoldBaseDims) 2)) 1.0) 16 0])))
 
 (def proMicroHoldPlaced 
   (->> 
     proMicroHold
     (rotate (deg2rad 90) [0 -1 0])
     (rotate (deg2rad 180) [0 0 1])
-    (rotate (deg2rad -8) [0 0 1])
+    (rotate (deg2rad -3) [0 0 1])
     (translate [(first proMicroHoldPos) (second proMicroHoldPos) (/ (first proMicroHoldBaseDims) 2)])
   )
 )
@@ -1093,7 +1126,7 @@
 (defn screw-insert-all-shapes [bottom-radius top-radius height]
   (union (screw-insert 0 0         bottom-radius top-radius height)
          (screw-insert 0 (- lastrow 0.6)   bottom-radius top-radius height)
-         (screw-insert 1.3 (+ lastrow 0.35)  bottom-radius top-radius height)
+         (screw-insert 1.3 (+ lastrow 0.55)  bottom-radius top-radius height)
          (screw-insert 3 0         bottom-radius top-radius height)
          (screw-insert (+ lastcol 0.05) 1   bottom-radius top-radius height)
          ))
@@ -1140,29 +1173,67 @@
       (rotate-around-y tenting-angle [(- (first wallStart) 0) (- (second wallStart) 10) 0]))
 (println [(- (first wallStart) 0) (- (second wallStart) 10) 0])
 
+(def testCube
+    (->>
+      (cube 1 1 1)
+      (color [1 0 0])))
+
 (def wallTest 
   (union
    ;(for [x (range 0 1)] (key-wall-brace x 0 0 1 web-post-tl x       0 0 1 web-post-tr))
    ;(for [x (range 1 ncols)] (key-wall-brace x 0 0 1 web-post-tl (dec x) 0 0 1 web-post-tr))
    ;(key-wall-brace lastcol 0 0 1 web-post-tr lastcol 0 1 0 web-post-tr)
     (->>
+      testCube
+      (translate [0 0 0.5])
+      (translate [(+ (/ mount-width -2) post-adj) (- (/ mount-height 2) post-adj) 0] web-post))
+    (->>
+      testCube
+      (translate [(+ (/ mount-width -2) post-adj) (- (/ mount-height 2) post-adj) 0] web-post)
+      (translate (wall-locate1 0 1))
+      (key-place 0 0))
+    (->>
+      testCube
+      (translate [(+ (/ mount-width -2) post-adj) (- (/ mount-height 2) post-adj) 0] web-post)
+      (key-place 0 0))
+    (->>
+      testCube
+      (translate [(+ (/ mount-width -2) post-adj) (- (/ mount-height 2) post-adj) 0] web-post)
+      (translate (wall-locate2 0 1))
+      (key-place 0 0))
+    (->>
+      (cube 1 1 1)
+      (color [0 0 1])
+      (translate [(+ (/ mount-width -2) post-adj) (- (/ mount-height 2) post-adj) 0] web-post)
+      (translate (wall-locate3 0 1))
+      (key-place 0 0))
+    (->>
+      (cube 1 1 1)
+      (color [0 0 1])
+      (translate [0 0 0.5])
+      (translate [(+ (/ mount-width -2) post-adj) (- (/ mount-height 2) post-adj) 0])
+      (translate (wall-locate3 0 1))
+      (key-place 1 0))
+    (->>
       web-post-tr
       (color [0 1 0]))
     (->>
       (cube 1 1 1)
-      (color [1 0 0])
+      (color [0 0 0])
       ;(translate [(+ 5 (first test-pos)) (+ 5 (second test-pos)) (- (/ (first trs-holder-dims) 2) (/ (+ (* -1 trshold-thick) trshold-wireOffset) 2))])
       (translate [0 -5 0])
       (translate wallPos)
       )
     (->>
+      ;this cube is placed at the x position of the first key, and attempts to be lined up with the wall.
       (cube 1 1 1)
-      (color [1 0 0])
-      (translate [(first (key-position 0 1 [0 0 0])) wallY 0.5])
+      (color [0 0 0])
+      (translate [(first (key-position 0 1 [0 0 0])) (wallY 0) 0.5])
       )
     (->>
+      ;this cube gets placed at the center of the top left key
       (cube 1 1 1)
-      (color [1 0 0])
+      (color [0 0 0])
       ;(translate [(+ 5 (first test-pos)) (+ 5 (second test-pos)) (- (/ (first trs-holder-dims) 2) (/ (+ (* -1 trshold-thick) trshold-wireOffset) 2))])
       (key-place 0 0)
       )))
@@ -1234,7 +1305,7 @@
                   ;(cube 100 100 100)
                   ;(cube 1000 1000 1000)
                   (cube 80 80 40)
-                  (translate [-64 40 10])
+                  (translate [-54 30 20])
                 )
                 model-right))
 
@@ -1291,6 +1362,17 @@
 (spit "things/connTest.scad" (write-scad connTest))
 ;(spit "things/cube.scad" (write-scad (cube 10 10 10)))
 ;(spit "things/right-plate.scad" (write-scad right-plate))
+
+(def geotest
+  (apply union
+         (for [column columns
+               row rows
+               :when (or (.contains [2 3] column)
+                         (not= row lastrow))]
+           (->> (sa-cap (if (= column 5) 1 1))
+                (key-place column row)))))
+
+(spit "things/geotest.scad" (write-scad geotest))
 
 
 
